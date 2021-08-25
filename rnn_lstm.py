@@ -37,7 +37,7 @@ class RnnLstm:
         self.model.fit(inputs, targets, batch_size, epochs)
 
     def save(self, path):
-        dir_name = datetime.datetime.now().strftime("%Y_%m_%d-%H:%M:%S")
+        dir_name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         full_path = path + "/" + dir_name
         os.makedirs(full_path)
 
