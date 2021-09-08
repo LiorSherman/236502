@@ -20,6 +20,6 @@ if __name__ == "__main__":
         gen = MelodyGenerator(**melody_generator_params, model=trainer.model)
     else:
         gen = MelodyGenerator(**melody_generator_params)
-        gen.load_model("trained_models/erk_trained_model")
-    song = gen.generate_melody(500, 64, 0.7)
+        gen.load_model("trained_models/top10")
+    song = gen.generate_melody(500, 64, 0.8)
     gen.save_melody(song)

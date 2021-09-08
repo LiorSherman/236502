@@ -1,5 +1,5 @@
 preprocessor_params = {
-    'dataset_path': "dataset/deutschl/test",
+    'dataset_path': "dataset/deutschl/bach",
     'processed_path': "processed_dataset",
     'mapping_file': "processed_dataset/mapping.json",
     'one_string_dataset_file': "processed_dataset/full_processed_dataset",

@@ -4,6 +4,27 @@ import shutil
 import json
 import numpy as np
 import tensorflow.keras as keras
+from music21 import *
+
+
+def pad_song(song, max_parts):
+    song = song.split(" ")
+    padded_song = [pad_with_rests(event, max_parts) for event in song]
+    song = " ".join(map(str, padded_song))
+    return song
+
+
+def number_of_parts(event):
+    parts = event.split(',')
+    return len(parts)
+
+
+def pad_with_rests(event, max_parts):
+    padded_event = event
+    parts = event.split(',')
+    for i in range(max_parts - len(parts)):
+        padded_event += ',r'
+    return padded_event
 
 
 def transpose(song):
@@ -35,30 +56,41 @@ def encode_song(song, time_step=0.25):
     :return:
     """
     encoded_song = []
-
-    for event in song.flat.notesAndRests:
-
-        # handle notes
-        if isinstance(event, m21.note.Note):
-            symbol = event.pitch.midi  # 60
-        # handle rests
-        else:  # symbol is rest
-            symbol = "r"
-
-        # convert the note/rest into time series notation
-        steps = int(event.duration.quarterLength / time_step)
-        for step in range(steps):
-            # if it's the first time we see a note/rest, let's encode it.
-            # Otherwise, it means we're carrying the same
-            # symbol in a new time step
-            if step == 0:
-                encoded_song.append(symbol)
+    encoded_parts = []
+    for part in song.parts.stream():
+        encoded_part = []
+        for event in part.flat.notesAndRests:
+            # handle notes
+            if isinstance(event, m21.note.Note):
+                symbol = event.pitch.midi  # 60
+            # handle rests
+            elif isinstance(event, m21.chord.Chord):  # symbol is chord
+                symbol = ""
+                for pitch in event.pitches:
+                    symbol += f".{pitch.midi}"
+                symbol = symbol[1:]
             else:
-                encoded_song.append("_")
+                symbol = "r"
 
-    # cast encoded song to str
+            # convert the note/rest into time series notation
+            steps = int(event.duration.quarterLength / time_step)
+            for step in range(steps):
+                # if it's the first time we see a note/rest, let's encode it.
+                # Otherwise, it means we're carrying the same
+                # symbol in a new time step
+                if step == 0:
+                    encoded_part.append(symbol)
+                else:
+                    encoded_part.append("_")
+
+        encoded_parts.append(encoded_part)
+    for tup in zip(*encoded_parts):
+        symbol = ""
+        for val in tup:
+            symbol += f",{val}"
+        symbol = symbol[1:]
+        encoded_song += [symbol]
     encoded_song = " ".join(map(str, encoded_song))
-
     return encoded_song
 
 
@@ -72,6 +104,8 @@ class PreProcessor:
         self.seq_len = seq_len
         self.durations = acceptable_durations
         self.songs = []
+        self.encoded_songs = []
+        self.one_string_songs = None
         self.outputs = None
 
     def load(self):
@@ -85,8 +119,9 @@ class PreProcessor:
         for path, subdirs, files in os.walk(self.dataset_path):
             for file in files:
                 # consider only kern files
-                if file[-3:] == "krn":
+                if file[-3:] == "krn" or file[-3:] == "mid":
                     song = m21.converter.parse(os.path.join(path, file))
+                    
                     self.songs.append(song)
         print(f"Loaded {len(self.songs)} songs.")
 
@@ -138,11 +173,7 @@ class PreProcessor:
         if not os.path.exists(self.processed_path):
             os.makedirs(self.processed_path)
 
-        for i, song in enumerate(self.songs):
-            # save songs to text file
-            save_path = os.path.join(self.processed_path, f"song_{i}")
-            with open(save_path, "w") as fp:
-                fp.write(encode_song(song))
+        self.encoded_songs = [encode_song(song) for song in self.songs]
 
     def create_single_file_dataset(self):
         """Generates a file collating all the encoded songs and adding new piece delimiters and a JSON mapping of
@@ -154,21 +185,12 @@ class PreProcessor:
         songs = ""
 
         # load encoded songs and add delimiters
-        for path, _, files in os.walk(self.processed_path):
-            for file in files:
-                file_path = os.path.join(path, file)
-                with open(file_path, "r") as fp:
-                    song = fp.read()
-                songs = songs + song + " " + new_song_delimiter
+        for song in self.encoded_songs:
+            songs = songs + song + " " + new_song_delimiter
 
         # remove empty space from last character of string
         songs = songs[:-1]
-
-        # save string that contains all the dataset
-        with open(self.one_string_dataset_file, "w") as fp:
-            fp.write(songs)
-
-        print(f"{self.one_string_dataset_file} - single dataset file created!")
+        self.one_string_songs = songs
 
         mappings = {}
 
@@ -209,9 +231,7 @@ class PreProcessor:
         """
 
         # load songs and map them to int
-        with open(self.one_string_dataset_file, "r") as fp:
-            songs = fp.read()
-        int_songs = self.convert_songs_to_int(songs)
+        int_songs = self.convert_songs_to_int(self.one_string_songs)
 
         inputs = []
         targets = []
@@ -229,6 +249,17 @@ class PreProcessor:
         targets = np.array(targets)
 
         return inputs, targets
+
+    def normalize_encoded_songs(self):
+        # getting the maximum parts of all songs
+        max_parts = 0
+        for song in self.encoded_songs:
+            song = song.split(" ")
+            parts = [number_of_parts(event) for event in song]
+            max_parts = max(max_parts, max(parts))
+
+        # normalizing all songs to have maximum number of parts
+        self.encoded_songs = [pad_song(song, max_parts) for song in self.encoded_songs]
 
     def process(self, remove_non_acceptable_durations=False, transpose=False):
         """
@@ -251,6 +282,9 @@ class PreProcessor:
 
         # encode songs and save the processed files to the processed dataset path
         self.encode_and_save()
+
+        # normalize songs parts to be as the max part size
+        self.normalize_encoded_songs()
 
         # create a single file dataset combining all songs together and generate a mapping from  each symbol
         # to a integer
