@@ -6,6 +6,19 @@ from tensorflow.keras.models import load_model
 import random
 
 
+def decode_to_parts(song):
+    parts = []
+    part = []
+    for i in range(len(song[0].split(','))):
+        for timestep in song:
+            events = timestep.split(',')
+            part.append(events[i])
+        if not all(val == 'r' or val == '_' for val in part):
+            parts.append(part)
+        part = []
+    return parts
+
+
 class MelodyGenerator:
     def __init__(self, mapping_file, seq_len, model=None):
         self.model = model
@@ -83,48 +96,54 @@ class MelodyGenerator:
         :param file_name (str): Name of midi file
         :return:
         """
-
+        parts = decode_to_parts(melody)
         # create a music21 stream
         stream = m21.stream.Stream()
 
-        start_symbol = None
         step_counter = 1
+        for j, melody in enumerate(parts):
+            start_symbol = None
+            part = m21.stream.Part(id=f'part{j}')
+            # parse all the symbols in the melody and create note/rest objects
+            for i, symbol in enumerate(melody):
 
-        # parse all the symbols in the melody and create note/rest objects
-        for i, symbol in enumerate(melody):
+                # handle case in which we have a note/rest
+                if symbol != "_" or i + 1 == len(melody):
 
-            # handle case in which we have a note/rest
-            if symbol != "_" or i + 1 == len(melody):
+                    # ensure we're dealing with note/rest beyond the first one
+                    if start_symbol is not None:
 
-                # ensure we're dealing with note/rest beyond the first one
-                if start_symbol is not None:
+                        quarter_length_duration = step_duration * step_counter  # 0.25 * 4 = 1
 
-                    quarter_length_duration = step_duration * step_counter  # 0.25 * 4 = 1
+                        # handle rest
+                        if start_symbol == "r":
+                            m21_event = m21.note.Rest(quarterLength=quarter_length_duration)
 
-                    # handle rest
-                    if start_symbol == "r":
-                        m21_event = m21.note.Rest(quarterLength=quarter_length_duration)
+                        # handle note
+                        elif '.' not in start_symbol:
+                            m21_event = m21.note.Note(int(start_symbol), quarterLength=quarter_length_duration)
+                        # handle chord
+                        else:
+                            chord_list = start_symbol.split('.')
+                            chord_list = [int(val) for val in chord_list]
+                            m21_event = m21.chord.Chord(chord_list, quarterLength=quarter_length_duration)
 
-                    # handle note
-                    else:
-                        m21_event = m21.note.Note(int(start_symbol), quarterLength=quarter_length_duration)
+                        part.append(m21_event)
 
-                    stream.append(m21_event)
+                        # reset the step counter
+                        step_counter = 1
 
-                    # reset the step counter
-                    step_counter = 1
+                    start_symbol = symbol
 
-                start_symbol = symbol
-
-            # handle case in which we have a prolongation sign "_"
-            else:
-                step_counter += 1
-
+                # handle case in which we have a prolongation sign "_"
+                else:
+                    step_counter += 1
+            stream.insert(0, part)
         # write the m21 stream to a midi file
         stream.write(format, file_name)
 
     def random_seed(self):
         while True:
             key, value = random.choice(list(self._mappings.items()))
-            if key not in ["/", "_", "r"]:
+            if all(val not in [',', '_'] for val in key.split(',')):
                 return key
