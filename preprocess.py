@@ -1,25 +1,42 @@
 import music21 as m21
 import os
 import shutil
+from typing import List
 import json
 import numpy as np
-import tensorflow.keras as keras
-from music21 import *
+from tqdm import tqdm
 
 
-def pad_song(song, max_parts):
+def pad_song(song: str, max_parts: int) -> str:
+    """
+    Return the song padded with extra "r" symbols to fit the maximum number of parts
+    :param song: string representation of a song
+    :param max_parts: The maximum number of parts of all songs
+    :return: a padded song with number of parts as the maximum number of parts
+    """
     song = song.split(" ")
     padded_song = [pad_with_rests(event, max_parts) for event in song]
     song = " ".join(map(str, padded_song))
     return song
 
 
-def number_of_parts(event):
+def number_of_parts(event: str) -> int:
+    """
+    counts the number of parts in a symbol
+    :param event: string representation of a symbol
+    :return: number of parts in the event
+    """
     parts = event.split(',')
     return len(parts)
 
 
-def pad_with_rests(event, max_parts):
+def pad_with_rests(event: str, max_parts: int) -> str:
+    """
+    adds "r" to an event in order to fit the maximum parts in all of songs
+    :param event: string representation of a symbol
+    :param max_parts: number of maximum parts in all songs
+    :return: the padded event
+    """
     padded_event = event
     parts = event.split(',')
     for i in range(max_parts - len(parts)):
@@ -27,10 +44,10 @@ def pad_with_rests(event, max_parts):
     return padded_event
 
 
-def transpose(song):
+def transpose(song: m21.stream.Score) -> m21.stream.Score:
     """Transposes song to C maj/A min
     :param song: Piece to transpose
-    :return transposed_song (m21 stream):
+    :return transposed_song: the transposed song
     """
     # estimate key using music21
     key = song.analyze("key")
@@ -46,14 +63,14 @@ def transpose(song):
     return transposed_song
 
 
-def encode_song(song, time_step=0.25):
+def encode_song(song: m21.stream.Score, time_step=0.25) -> str:
     """Converts a score into a time-series-like music representation. Each item in the encoded list represents 'min_duration'
     quarter lengths. The symbols used at each step are: integers for MIDI notes, 'r' for representing a rest, and '_'
     for representing notes/rests that are carried over into a new time step. Here's a sample encoding:
         ["r", "_", "60", "_", "_", "_", "72" "_"]
-    :param song : Piece to encode (m21 stream)
+    :param song : Piece to encode
     :param time_step: Duration of each time step in quarter length
-    :return:
+    :return: a string representation of the song
     """
     encoded_song = []
     encoded_parts = []
@@ -95,37 +112,47 @@ def encode_song(song, time_step=0.25):
 
 
 class PreProcessor:
-    def __init__(self, dataset_path, processed_path, mapping_file, one_string_dataset_file,
-                 seq_len, acceptable_durations):
+    """
+    a class to help pre process midi and krn files as datasets.
+    """
+    def __init__(self, dataset_path, output_dir, seq_len=64):
         self.dataset_path = dataset_path
-        self.processed_path = processed_path
-        self.mapping_file = mapping_file
-        self.one_string_dataset_file = one_string_dataset_file
+        self.output_dir = output_dir
+        self.mapping_file = os.path.join(self.output_dir, 'mapping.json')
         self.seq_len = seq_len
-        self.durations = acceptable_durations
+        self.durations = [0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 4]
         self.songs = []
         self.encoded_songs = []
         self.one_string_songs = None
         self.outputs = None
 
     def load(self):
-        """Loads all kern pieces in dataset using music21.
-        :return songs (list of m21 streams): List containing all pieces
         """
-        print(f"Loading songs from \"{self.dataset_path}\"...")
+        Loads all kern pieces in dataset using music21.
+        """
         # resetting the songs of the preprocessor
         self.songs = []
         # go through all the files in dataset and load them with music21
+        num_of_files = 0
+        types = ['mid', 'krn']
         for path, subdirs, files in os.walk(self.dataset_path):
             for file in files:
-                # consider only kern files
-                if file[-3:] == "krn" or file[-3:] == "mid":
-                    song = m21.converter.parse(os.path.join(path, file))
-                    
-                    self.songs.append(song)
-        print(f"Loaded {len(self.songs)} songs.")
+                if file[-3:] in types:
+                    num_of_files += 1
 
-    def _has_acceptable_durations(self, song):
+        with tqdm(total=num_of_files, desc='loading files') as progress_bar:
+            for path, subdirs, files in os.walk(self.dataset_path):
+                for file in files:
+                    # consider only kern files
+                    if file[-3:] in types:
+                        progress_bar.set_postfix(file=file)
+                        song = m21.converter.parse(os.path.join(path, file))
+
+                        self.songs.append(song)
+                        progress_bar.update(1)
+            print(f"Loaded {len(self.songs)} songs.")
+
+    def _has_acceptable_durations(self, song: m21.stream.Score) -> bool:
         """Boolean routine that returns True if piece has all acceptable duration, False otherwise.
         :param song: song (m21 stream)
         :return (bool):
@@ -165,20 +192,19 @@ class PreProcessor:
         """
         print("Encoding the dataset into time series representation files...")
         # create a new directory for the processed files
-        if os.path.exists(self.processed_path):
+        if os.path.exists(self.output_dir):
             try:
-                shutil.rmtree(self.processed_path)
+                shutil.rmtree(self.output_dir)
             except OSError as e:
                 print("Error: %s - %s." % (e.filename, e.strerror))
-        if not os.path.exists(self.processed_path):
-            os.makedirs(self.processed_path)
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
 
         self.encoded_songs = [encode_song(song) for song in self.songs]
 
     def create_single_file_dataset(self):
         """Generates a file collating all the encoded songs and adding new piece delimiters and a JSON mapping of
         all symbols.
-        :return songs (str): String containing all songs in dataset + delimiters
         """
         print("Generating single file dataset & unique mapping...")
         new_song_delimiter = "/ " * self.seq_len
@@ -208,7 +234,12 @@ class PreProcessor:
             json.dump(mappings, fp, indent=4)
         print(f"{self.mapping_file} - JSON mapping file created!")
 
-    def convert_songs_to_int(self, songs):
+    def convert_songs_to_int(self, songs: str) -> List[int]:
+        """
+        converts songs from symbol representation into int representation using the JSON map
+        :param songs: a string representation of all songs together
+        :return: a list of int representation of all songs together
+        """
         int_songs = []
 
         # load mappings
@@ -224,31 +255,15 @@ class PreProcessor:
 
         return int_songs
 
-    def generate_training_sequences(self):
-        """Create input and output data samples for training. Each sample is a sequence.
-        :return inputs (ndarray): Training inputs
-        :return targets (ndarray): Training targets
+    def generate_encoded_dataset(self):
         """
-
-        # load songs and map them to int
+        creating and saving a ndarray of all songs
+        :return: ndarray of all songs
+        """
         int_songs = self.convert_songs_to_int(self.one_string_songs)
-
-        inputs = []
-        targets = []
-
-        # generate the training sequences
-        num_sequences = len(int_songs) - self.seq_len
-        for i in range(num_sequences):
-            inputs.append(int_songs[i:i + self.seq_len])
-            targets.append(int_songs[i + self.seq_len])
-
-        # one-hot encode the sequences
-        vocabulary_size = len(set(int_songs))
-        # inputs size: (# of sequences, sequence length, vocabulary size)
-        inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
-        targets = np.array(targets)
-
-        return inputs, targets
+        all_songs_int = np.array(int_songs)
+        np.save(os.path.join(self.output_dir, 'dataset.npy'), all_songs_int)
+        return all_songs_int
 
     def normalize_encoded_songs(self):
         # getting the maximum parts of all songs
@@ -267,7 +282,7 @@ class PreProcessor:
         into the processed songs path.
         :param remove_non_acceptable_durations: enable to remove non-acceptable durations of notes
         :param transpose: enable to transpose songs to C maj/ A min
-        :return trainx, trainy values.
+        :return an ndarray of the processed dataset
         """
         # load songs from dataset
         self.load()
@@ -291,4 +306,4 @@ class PreProcessor:
         self.create_single_file_dataset()
 
         # generate training and target sequences for the model from the one file dataset we created
-        return self.generate_training_sequences()
+        return self.generate_encoded_dataset()
