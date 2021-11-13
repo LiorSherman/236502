@@ -1,1 +1,2 @@
-1.1.0
+RNN version : 1.1.0
+GAN version : 1.0.0
