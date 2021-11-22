@@ -96,7 +96,7 @@ class BarGenerator(nn.Module):
         return y
 
 
-class MuseGenerator(nn.Module):
+class MidiGenerator(nn.Module):
 
     def __init__(self,
                  z_dim=32,
@@ -183,7 +183,7 @@ class MuseGenerator(nn.Module):
         return out
 
 
-class MuseCritic(nn.Module):
+class MidiCritic(nn.Module):
     def __init__(self,
                  hid_channels: int = 128,
                  hid_features: int = 1024,

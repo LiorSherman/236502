@@ -6,7 +6,7 @@ from gan.settings import *
 import pandas as pd
 from gan.dataset import Dataset
 from torch.utils.data import DataLoader
-from gan.gan import MuseGenerator, MuseCritic
+from gan.gan import MidiGenerator, MidiCritic
 from gan.utils import initialize_weights, generate_samples_from_gen
 from gan.train import Trainer
 
@@ -51,9 +51,9 @@ def execute():
     print('Loading Dataset...')
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     print('Loading Models...')
-    generator = MuseGenerator(z_dim=32, hid_channels=1024, hid_features=1024, out_channels=1).to(device)
+    generator = MidiGenerator(z_dim=32, hid_channels=1024, hid_features=1024, out_channels=1).to(device)
     g_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001, betas=(0.5, 0.9))
-    critic = MuseCritic(hid_channels=128,
+    critic = MidiCritic(hid_channels=128,
                         hid_features=1024,
                         out_features=1).to(device)
     c_optimizer = torch.optim.Adam(critic.parameters(), lr=0.001, betas=(0.5, 0.9))
