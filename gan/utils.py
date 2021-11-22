@@ -32,7 +32,7 @@ class GradientPenalty(nn.Module):
         return penalty
 
 
-def parseToMidi(pianoroll, midi_out_path, name="My Track", jupyter_display_midi=False):
+def parseToMidi(pianoroll, midi_out_path, name="My_Track", jupyter_display_midi=False):
     assert(midi_out_path != None, "Incorrect out path")
     if not os.path.exists(midi_out_path):
         os.makedirs(midi_out_path)
@@ -58,8 +58,9 @@ def parseToMidi(pianoroll, midi_out_path, name="My Track", jupyter_display_midi=
             song = converter.parse(os.path.join(midi_out_path, f"{m.name}.mid"))
             song.show()
             song.show('midi')
-        except:
-            print(f'Failed to display {os.path.join(midi_out_path, f"{m.name}.mid")}')
+        except Exception as e:
+            print(e)
+            # print(f'Failed to display {os.path.join(midi_out_path, f"{m.name}.mid")}')
 
 
 def initialize_weights(layer, mean=0.0, std=0.02):
@@ -79,7 +80,7 @@ def plot_losses(losses):
     axs[0].set_ylabel('Loss', fontsize=12)
 
     axs[1].plot(losses['crloss'], 'b', label='critic real')
-    axs[1].plot(losses['cfloss'], 'r', label='critic penalty')
+    axs[1].plot(losses['cfloss'], 'r', label='critic fake')
     axs[1].set_title('Critic real/fake Loss', fontsize=20)
     axs[1].legend(loc='best')
     axs[1].set_xlabel('Epoch', fontsize=12)
