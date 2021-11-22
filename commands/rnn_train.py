@@ -3,11 +3,11 @@ import argparse
 import torch
 from torch.utils.data import DataLoader
 from torch import nn, optim
-from dataset import split_train_validation, MusicDataset
-from model import LSTM
+from rnn_lstm.dataset import split_train_validation, MusicDataset
+from rnn_lstm.model import LSTM
 import numpy as np
-from preprocess import PreProcessor
-from training import Trainer
+from rnn_lstm.preprocess import PreProcessor
+from rnn_lstm.training import Trainer
 
 
 def desc():
@@ -18,6 +18,8 @@ def execute():
     parser = argparse.ArgumentParser(description='Rnn train', prog=__name__)
     parser.add_argument('input', help='path of the dataset to process')
     parser.add_argument('output', help='path of the output dir')
+    parser.add_argument("--epochs", default=50, type=int, help='number of epochs to train [default=50]')
+
 
     args = parser.parse_args()
 
@@ -26,7 +28,7 @@ def execute():
         raise ValueError(f"{args.input} is not a valid dataset dir path")
 
     if not os.path.exists(args.output):
-        os.mkdir(args.output)
+        os.makedirs(args.output)
 
     # pre processing the dataset
     pre = PreProcessor(args.input, args.output)
@@ -49,4 +51,4 @@ def execute():
     optimiser = optim.Adam(model.parameters())
 
     trainer = Trainer(model, optimiser, criterion, device=device, output=args.output)
-    trainer.fit(train_loader, validation_loader)
+    trainer.fit(train_loader, validation_loader, epoches=args.epochs)
