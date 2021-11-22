@@ -16,12 +16,9 @@ class Trainer():
         self.gen_criterion = WassersteinLoss().to(device)
         self.critic_criterion = WassersteinLoss().to(device)
         self.critic_penalty = GradientPenalty().to(device)
-        print(out_path)
         if not os.path.exists(out_path):
             os.makedirs(out_path)
         self.out_path = out_path
-
-        # self.device = device
 
     def _sample_during_training_samples(self, epoch, device, sample_step=None, sample_num=5):
         if sample_step == None or epoch % sample_step != 0:
