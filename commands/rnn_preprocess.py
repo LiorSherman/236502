@@ -1,6 +1,6 @@
 import os
 import argparse
-from preprocess import PreProcessor
+from rnn_lstm.preprocess import PreProcessor
 
 
 def desc():
@@ -19,7 +19,7 @@ def execute():
         raise ValueError(f"{args.input} is not a valid dataset dir path")
 
     if not os.path.exists(args.output):
-        os.mkdir(args.output)
+        os.makedirs(args.output)
 
     pre = PreProcessor(args.input, args.output)
     _ = pre.process()
