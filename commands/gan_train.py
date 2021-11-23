@@ -24,8 +24,10 @@ def execute():
     parser.add_argument('--batch_size', type=int, default=64, help='number of epochs')
     parser.add_argument('--sample_step', type=int, default=0, help='generate samples every X epoch')
     parser.add_argument('--sample_num', type=int, default=5, help='number of samples to generate every time')
-    parser.add_argument('--generate_final_num', type=int, default=1, help='number of samples to generate at the end of training')
-
+    parser.add_argument('--generate_final_num', type=int, default=1, help='number of samples to generate at the end '
+                                                                          'of training')
+    parser.add_argument('--opt', default='Adam', help='experience with different optimizers')
+    parser.add_argument('--lr', type=float, default=0.001, help='optimizer learning rate')
 
 
     args = parser.parse_args()
@@ -34,7 +36,7 @@ def execute():
     if not os.path.exists(args.dataset):
         raise ValueError(f"{args.dataset} is not a valid dataset dir path")
 
-    model_path = os.path.join('./my_trained_models', args.model_name)
+    model_path = os.path.join('./gan/my_trained_models', args.model_name)
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
@@ -52,11 +54,25 @@ def execute():
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     print('Loading Models...')
     generator = MidiGenerator(z_dim=32, hid_channels=1024, hid_features=1024, out_channels=1).to(device)
-    g_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001, betas=(0.5, 0.9))
+
+    # g_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001, betas=(0.5, 0.9))
     critic = MidiCritic(hid_channels=128,
                         hid_features=1024,
                         out_features=1).to(device)
-    c_optimizer = torch.optim.Adam(critic.parameters(), lr=0.001, betas=(0.5, 0.9))
+    # c_optimizer = torch.optim.Adam(critic.parameters(), lr=0.001, betas=(0.5, 0.9))
+
+    print(f'Chosen optimizer : {args.opt}')
+
+    if args.opt == 'RMSprop':
+        g_optimizer = torch.optim.RMSprop(generator.parameters(), lr=args.lr)
+        c_optimizer = torch.optim.RMSprop(critic.parameters(), lr=args.lr)
+    elif args.opt == 'SGD':
+        g_optimizer = torch.optim.SGD(generator.parameters(), lr=args.lr)
+        c_optimizer = torch.optim.SGD(critic.parameters(), lr=args.lr)
+    else: #'Adam' by default
+        g_optimizer = torch.optim.Adam(generator.parameters(), lr=args.lr, betas=(0.5, 0.9))
+        c_optimizer = torch.optim.Adam(critic.parameters(), lr=args.lr, betas=(0.5, 0.9))
+
     generator = generator.apply(initialize_weights)
     critic = critic.apply(initialize_weights)
     print('Setting Up Training...')
@@ -67,7 +83,7 @@ def execute():
                       sample_step=args.sample_step, sample_num=args.sample_num)
     else:
         trainer.train(dataloader, batch_size=args.batch_size, epochs=args.epochs, device=device)
-    print('Training finished succesfuly')
+    print('Training finished successfully')
 
     print('Saving Model')
     generator = generator.eval().cpu()

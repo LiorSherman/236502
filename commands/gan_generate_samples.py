@@ -9,7 +9,7 @@ def desc():
 
 def execute():
     parser = argparse.ArgumentParser(description='GAN : Generate Samples', prog=__name__)
-    parser.add_argument('input', help='path to the generator.pt folder')
+    parser.add_argument('input', help='path to the generator.pt file')
     parser.add_argument('output', help='path of the output dir')
     parser.add_argument('--num', type=int, default=1, help='num of samples to generate')
     parser.add_argument('--name', default='My Track', help='sample names')

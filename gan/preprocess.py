@@ -14,6 +14,10 @@ current_folder = os.path.expanduser(BASEDIR)
 merge_out_dir = os.path.join('gan', 'merged')
 
 def load_songs(path):
+    """ Loads midi songs from path
+    :param path: path to midi dir
+    :return: List of MidiFiles
+    """
     print(f"Loading songs from \"{path}\"...")
     # resetting the songs of the preprocessor
     songs = []
@@ -35,6 +39,10 @@ def load_songs(path):
 
 
 def filter_songs(midi_songs: list):
+    """ Filters out midis which doesnt have 4/4 time signature
+    :param midi_songs: list of Midifiles
+    :return: List of paths to midi files containing 4/4 time signature
+    """
     def is_ok(midi):
         for track in midi.tracks:
             for msg in track:
@@ -55,6 +63,12 @@ def filter_songs(midi_songs: list):
 
 
 def merge_tracks(song_path):
+    """ Merges a multi track midi file into 4 tracks - drums, piano, bass, ensemble
+    All similiar instrument tracks are combined together.
+    Notice: returns none incase at least one of the above tracks is absent
+    :param song_path: path to midi file
+    :return: pypi.Multitrack containing 4 tracks as described above, or None in case at least one track is absent.
+    """
     multitrack = pypi.read(song_path, resolution=BEAT_RESOLUTION)
     multitrack.name = os.path.basename(song_path)
 
@@ -93,12 +107,19 @@ def merge_tracks(song_path):
     return m
 
 
-def merge_songs(songs: list, merge_save_dir):
+def merge_songs(l_midis_paths: list, merge_save_dir):
+    """ Merges multi track midi files into 4 tracks - drums, piano, bass, ensemble,
+    and saves each midi file name 'some_midi.mid' to an output folder under the name 'merged_some_midi.mid'
+    Calls'merge_tracks()' function. See documentaion of 'merge_tracks().
+    :param l_midis_paths: List of midi paths
+    :param merge_save_dir: dir output path for saving merged midis
+    :return: List of pypi.Multitrack containing 4 tracks as described above, or None in case at least one track is absent.
+    """
     print('merging')
     merged_songs = []
-    for song in tqdm(songs):
+    for song in tqdm(l_midis_paths):
         try:
-            merged_song = merge_tracks(song)
+            merged_song = merge_tracks(l_midis_paths)
             if merged_song != None:
                 merged_songs.append(merged_song)
                 save_path = os.path.join(merge_save_dir, f"merged_{merged_song.name}")
@@ -111,6 +132,10 @@ def merge_songs(songs: list, merge_save_dir):
 
 
 def load_multitacks(path):
+    """ Loads multitracks from path
+    :param path: path to midi directory
+    :return: List of pypi.Multitracks
+    """
     multitracks = []
     for path, subdirs, files in os.walk(path):
         for file in files:
@@ -124,6 +149,15 @@ def load_multitacks(path):
 
 
 def prepare_dataset(input_path, out_path=merge_out_dir):
+    """ Prepares midi dataset for preprocessing.
+    1 - Loads midis from path
+    2 - Filters out songs not containing 4/4 time signature
+    3 - Merges x-track midis into 4-track midis
+    See envoked function documentations for more info.
+    :param input_path: : path to midi dir
+    :param out_path: dir output path for saving merged midis
+    :return: List of pypi.Multitrack containing 4 tracks as described above, or None in case at least one track is absent.
+    """
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     midi_songs = load_songs(input_path)  # midi_songs = list[MidiFile]
@@ -136,6 +170,18 @@ def prepare_dataset(input_path, out_path=merge_out_dir):
 
 
 def preprocess_dataset(input_path, out_path):
+    """ Preprocess midi dataset for the data loader before training
+    1 - Loads 4-track midis from input_path
+    2 - Extracts all tracks pianorolls, binarizes, and stacks them together.
+    3 - Filters out low ([0:23]) and high ([109:128]) pitches
+    4 - Splits pianorolls into phrases(4 bars)
+    5 - Filteres out "quite" samples, while "quite" sample is a phrase containing at least one bar at any of the tracks
+        that is silent.
+    :param input_path: path to prepared midi dir containing 4-track midis
+    :param out_path: dir output path for saving dataset.npy file
+    :return: np.ndarray, shape=(-1, n_tracks=4, n_bars=4, n_steps_per_bar=16, n_pitches=84)
+            The stacked pianoroll.
+    """
     if not os.path.exists(pathlib.Path(out_path).parent.resolve()):
         os.makedirs(pathlib.Path(out_path).parent.resolve())
 
