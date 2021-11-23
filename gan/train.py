@@ -8,6 +8,9 @@ import os
 #_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 class Trainer():
+    """
+    Wrapper Training class
+    """
     def __init__(self, generator, critic, g_optimizer, c_optimizer, out_path, device):
         self.generator = generator.to(device)
         self.critic = critic.to(device)
@@ -20,8 +23,17 @@ class Trainer():
             os.makedirs(out_path)
         self.out_path = out_path
 
-    def _sample_during_training_samples(self, epoch, device, sample_step=None, sample_num=5):
-        if sample_step == None or epoch % sample_step != 0:
+    def _sample_during_training_samples(self, epoch, device, sample_step=0, sample_num=5):
+        """
+        generates samples during training
+        :param epoch: number of current epoch
+        :param device: training device (cpu/cuda)
+        :param sample_step: generate samples every 'sample_step'. If set to 0 - no samples during training
+        :param sample_num: number of samples to generate every time
+        :return:
+        """
+
+        if not sample_step or epoch % sample_step != 0:
             return
 
         training_samples_out_path = os.path.join(self.out_path, 'training samples')
@@ -40,8 +52,19 @@ class Trainer():
         pass
 
     def train(self, dataloader, epochs=500, batch_size=64, repeat=5, display_step=10, device='cpu', **kwargs):
+        """
+        Trains model on a given dataset
+        :param dataloader: dataloader containing proper dataset
+        :param epochs: total numbers of epochs to train
+        :param batch_size: num of samples per batch
+        :param repeat: number of steps to repeat descriminator (critic) train over the generator each epoch
+        :param display_step: display loss message values every 'display_step'
+        :param device: device to train on (cpu/cuda)
+        :param kwargs: params for sampling and exporting generated samples during training. see _sample_during_training_samples
+        :return: void
+        """
         print(f'Begining Train on device: {device}')
-        self.alpha = torch.rand((64, 1, 1, 1, 1)).requires_grad_().to(device)
+        self.alpha = torch.rand((batch_size, 1, 1, 1, 1)).requires_grad_().to(device)
         self.data = {'gloss': [], 'closs': [], 'cfloss': [], 'crloss': [], 'cploss': []}
         for epoch in tqdm(range(epochs)):
             exp_gen_loss = 0
