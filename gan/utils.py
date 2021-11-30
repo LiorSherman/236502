@@ -7,7 +7,7 @@ from torch import nn
 import matplotlib.pyplot as plt
 from music21 import converter
 from gan.settings import N_TRACKS, Z_DIM
-
+from gan.gan import MidiGenerator
 
 class WassersteinLoss(nn.Module):
     def __init__(self, ):
@@ -142,5 +142,8 @@ def generate_samples(gen_path: str, out_path, num_samples=1, sample_name="My Tra
     :param sample_name: sample names
     :return:
     """
-    generator = torch.load(gen_path)
+    generator = MidiGenerator(z_dim=32, hid_channels=1024, hid_features=1024, out_channels=1)
+    # generator = torch.load(gen_path)
+    generator.load_state_dict(torch.load(gen_path))
+    generator.eval()
     generate_samples_from_gen(generator, out_path, num_samples, sample_name)

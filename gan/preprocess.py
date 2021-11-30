@@ -117,10 +117,10 @@ def merge_songs(l_midis_paths: list, merge_save_dir):
     """
     print('merging')
     merged_songs = []
-    for song in tqdm(l_midis_paths):
+    for midi_path in tqdm(l_midis_paths):
         try:
-            merged_song = merge_tracks(l_midis_paths)
-            if merged_song != None:
+            merged_song = merge_tracks(midi_path)
+            if merged_song is not None:
                 merged_songs.append(merged_song)
                 save_path = os.path.join(merge_save_dir, f"merged_{merged_song.name}")
                 pypi.write(save_path, merged_song)

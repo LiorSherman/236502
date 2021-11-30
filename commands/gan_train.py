@@ -89,8 +89,8 @@ def execute():
     generator = generator.eval().cpu()
     critic = critic.eval().cpu()
 
-    torch.save(generator, os.path.join(model_path, f'generator_e{args.epochs}_s{len(dataset)}.pt'))
-    torch.save(critic, os.path.join(model_path, f'critic_e{args.epochs}_s{len(dataset)}.pt'))
+    torch.save(generator.state_dict(), os.path.join(model_path, f'generator_e{args.epochs}_s{len(dataset)}.pt'))
+    torch.save(critic.state_dict(), os.path.join(model_path, f'critic_e{args.epochs}_s{len(dataset)}.pt'))
     losses = trainer.data.copy()
     df = pd.DataFrame.from_dict(losses)
     df.to_csv(os.path.join(model_path, 'results.csv'), index=False)
