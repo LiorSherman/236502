@@ -20,7 +20,7 @@ def execute():
     parser.add_argument('dataset', help='path to the npy data set file')
     parser.add_argument('model_name', default='My Trained Model', help='model name')
     parser.add_argument('--limit_dataset', type=int, default=0, help='limit dataset number of samples')
-    parser.add_argument('--epochs', type=int, default=500, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=2000, help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=64, help='number of epochs')
     parser.add_argument('--sample_step', type=int, default=0, help='generate samples every X epoch')
     parser.add_argument('--sample_num', type=int, default=5, help='number of samples to generate every time')
