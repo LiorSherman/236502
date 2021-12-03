@@ -5,7 +5,7 @@
 ## Datasets
 
 - [Esac](http://www.esac-data.org) `Essen Associative Code` including more than 20k .krn files of european folk melodies.
-- [Snes](https://www.vgmusic.com/music/console/nintendo/snes/) over 6709 .mid files of Super Nintendo melodies.
+- [Snes](https://www.vgmusic.com/music/console/nintendo/snes/) over 6709 .mid files of `Super Nintendo` melodies.
 
 ## Sample results
 ### RNN LSTM model
