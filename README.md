@@ -8,7 +8,15 @@
 - [Snes](https://www.vgmusic.com/music/console/nintendo/snes/) over 6709 .mid files of Super Nintendo melodies.
 
 ## Sample results
-[sample 1](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+### RNN LSTM model
+- [sample 1](https://github.com/LiorSherman/236502/tree/master/best_results/rnn_piano_1.mp3)
+- [sample 2](https://github.com/LiorSherman/236502/tree/master/best_results/rnn_piano_2.mp3)
+- [sample 3](https://github.com/LiorSherman/236502/tree/master/best_results/rnn_multi.mp3)
+
+### GAN model
+- [sample 1](https://github.com/LiorSherman/236502/tree/master/best_results/gan_1.mp3)
+- [sample 2](https://github.com/LiorSherman/236502/tree/master/best_results/gan_2.mp3)
+- [sample 3](https://github.com/LiorSherman/236502/tree/master/best_results/gan_3.mp3)
 
 
 ## Prerequisites
