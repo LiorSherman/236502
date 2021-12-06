@@ -25,6 +25,7 @@
 
 ### Install dependencies
 
+> __Optional (Recommended)__ - installing [Musescore](https://musescore.org/en): free music notation software which will allow to display and play midi files (Not installing might cause some features not to work properly).
 - Create your virtual environment
 - Install the dependencies using pip
 
@@ -32,7 +33,7 @@
   # Install the dependencies
   pip install -r requirements.txt
   ```
-
+  
 ### Command Line Interface
 
 > We have created a python command line manager for use on all OS
@@ -67,6 +68,4 @@ You can use pre trained models easily with the CLI.
 > Example: generating 5 samples using pre trained GAN model on `my_demo` dir
 
 ```sh
-$ python manage.py gan_generate_samples gan/my_trained_models/modelA/generator_e20_s79.pt my_demo --num 5
-```
-
+$ python manage.py gan_generate_samples gan/pre_trained_models/modelA/generator.pt my_demo --num 5
