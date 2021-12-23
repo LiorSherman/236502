@@ -11,6 +11,7 @@ from rnn_lstm.settings import DEFAULT_SEQ_LEN, DEFAULT_HIDDEN_SIZE
 from rnn_lstm.model import LSTM
 import torch
 import random
+from rnn_lstm.settings import BASE_DIR
 
 
 def decode_to_parts(song: List[str]) -> List[List[str]]:
@@ -107,7 +108,7 @@ class MelodyGenerator:
         return melody
 
     def save_melody(self, melody: List[str], step_duration: float = 0.25, format: str = "midi",
-                    file_name: str = os.path.join('rnn_lstm', 'mel.mid'), instruments=None):
+                    file_name: str = os.path.join(BASE_DIR, 'rnn_lstm', 'mel.mid'), instruments=None):
         """
         Transforms a melody representation into a MIDI file
         :param instruments: instruments list per parts of the melody

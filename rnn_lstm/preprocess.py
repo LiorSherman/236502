@@ -1,6 +1,5 @@
 import music21 as m21
 import os
-import shutil
 from typing import List
 import json
 import numpy as np
