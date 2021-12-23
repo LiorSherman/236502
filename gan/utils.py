@@ -62,7 +62,7 @@ def parseToMidi(pianoroll, midi_out_path, name="My_Track", jupyter_display_midi=
     song = converter.parse(os.path.join(midi_out_path, f"{m.name}.mid"))
     if jupyter_display_midi:
         try:
-            midi.show()
+            song.show()
             song.show('midi')
         except Exception as e:
             print(e)
