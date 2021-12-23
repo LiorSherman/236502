@@ -91,7 +91,7 @@ def kfold_hyperparam_experiment(exp_dir, k_folds=5, epoches=10, **hyperparams):
                     outputs = model(inputs)
 
                     # Compute loss
-                    loss = loss_function(outputs, targets)
+                    loss = loss_function(outputs, targets.long())
 
                     # Perform backward pass
                     loss.backward()
@@ -248,7 +248,3 @@ def seq_len_exp(kfolds=5, output=DEFAULT_EXPERIMENTS_DIR, show=True, **kwargs):
     plt.savefig(os.path.join(exp_dir, "seq_len_exp_graph.png"))
     if show:
         plt.show()
-
-
-if __name__ == "__main__":
-    seq_len_exp()
